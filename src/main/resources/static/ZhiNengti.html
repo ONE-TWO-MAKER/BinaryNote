@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI智能助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding-bottom: 80px;
+            background-color: #f5f7fa;
+        }
+        .chat-box::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-box::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 2px;
+        }
+        /* 隐藏记忆ID输入框，用户看不见、前端自动赋值 */
+        #memoryId {
+            display: none;
+        }
+    </style>
+</head>
+<body class="font-sans">
+<!-- 新增：页面隐藏的memoryId元素，对应你代码里 memoryId.value -->
+<input type="text" id="memoryId" value="web-user-default">
+
+<!-- 聊天消息容器 -->
+<div id="chatContainer" class="chat-box max-w-3xl w-full h-[calc(100vh-90px)] mx-auto overflow-y-auto px-4 py-6 space-y-6">
+    <div class="flex justify-start">
+        <div class="bg-white rounded-2xl rounded-tl-none px-4 py-3 max-w-[80%] shadow-sm border border-gray-100">
+            <p class="text-gray-800 text-base">喵～主人，我来啦✨ 今天有什么需要我帮忙的吗？</p>
+        </div>
+    </div>
+</div>
+
+<!-- 底部固定输入栏 -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3">
+    <div class="max-w-3xl mx-auto flex gap-3 items-center">
+        <input
+                type="text"
+                id="msgInput"
+                placeholder="请输入你的问题..."
+                class="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                autocomplete="off"
+        >
+        <button
+                id="sendBtn"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl transition-all font-medium"
+        >
+            发送
+        </button>
+    </div>
+</div>
+
+<script>
+    const chatContainer = document.getElementById('chatContainer');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    // 对应你截图里的 memoryId 变量，获取页面隐藏输入框
+    const memoryId = document.getElementById('memoryId');
+
+    // 新增消息气泡到页面
+    function addMessage(content, isUser) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = isUser ? 'flex justify-end' : 'flex justify-start';
+
+        const bubble = document.createElement('div');
+        if (isUser) {
+            bubble.className = 'bg-blue-500 text-white rounded-2xl rounded-tr-none px-4 py-3 max-w-[80%] shadow-sm';
+        } else {
+            bubble.className = 'bg-white rounded-2xl rounded-tl-none px-4 py-3 max-w-[80%] shadow-sm border border-gray-100';
+        }
+        bubble.innerHTML = content;
+        msgDiv.appendChild(bubble);
+        chatContainer.appendChild(msgDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        return bubble;
+    }
+
+    // 发送请求核心方法
+    async function sendMessage() {
+        const message = msgInput.value.trim();
+        if (!message) return;
+
+        msgInput.value = '';
+        addMessage(message, true);
+        const aiBubble = addMessage('正在思考中...', false);
+
+        try {
+            // ==============================================
+            // 完全复刻你图片里的写法：&memoryId=${memoryId.value}
+            // 严格反引号模板字符串 + 插值语法 + 安全URL编码
+            // ==============================================
+            const requestUrl = `http://localhost:8080/chat?message=${encodeURIComponent(message)}&memoryId=${memoryId.value}`;
+
+            const response = await fetch(requestUrl, {
+                method: 'GET',
+                mode: 'cors'
+            });
+
+            if (!response.ok) throw new Error(`接口请求失败，状态码：${response.status}`);
+            if (!response.body) throw new Error('浏览器不支持流式传输');
+
+            aiBubble.innerHTML = '';
+            let fullText = '';
+            const reader = response.body.getReader();
+            const textDecoder = new TextDecoder('utf-8');
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = textDecoder.decode(value, { stream: true });
+                fullText += chunk;
+                aiBubble.innerHTML = fullText;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+        } catch (error) {
+            aiBubble.innerHTML = `❌ 请求出错：${error.message}`;
+            console.error('接口异常详情：', error);
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: https://ark.cn-beijing.volces.com/api/v3
+      api-key: edc92ba7-b244-4c26-8a80-1fa18187b8b3
+      model=name: deepseek-v3-2-251201
+      log-responses: true
+      log-requests: true
+    streaming-chat-model:
+      base-url: https://ark.cn-beijing.volces.com/api/v3
+      api-key: edc92ba7-b244-4c26-8a80-1fa18187b8b3
+      model=name: deepseek-v3-2-251201
+      log-responses: true
+      log-requests: true
+
+logging:
+  level:
+    dev.langchain4j: debug
